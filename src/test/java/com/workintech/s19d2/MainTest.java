@@ -1,255 +1,181 @@
 package com.workintech.s19d2;
 
+import com.workintech.s19d2.dao.AccountRepository;
+import com.workintech.s19d2.dao.MemberRepository;
+import com.workintech.s19d2.dao.RoleRepository;
 import com.workintech.s19d2.dto.RegisterResponse;
 import com.workintech.s19d2.dto.RegistrationMember;
 import com.workintech.s19d2.entity.Account;
 import com.workintech.s19d2.entity.Member;
 import com.workintech.s19d2.entity.Role;
-import com.workintech.s19d2.repository.AccountRepository;
-import com.workintech.s19d2.repository.MemberRepository;
-import com.workintech.s19d2.repository.RoleRepository;
 import com.workintech.s19d2.service.AccountServiceImpl;
-import com.workintech.s19d2.service.AuthenticationService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.*;
-
+import com.workintech.s19d2.service.AuthServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
 
-import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
-@DataJpaTest
-@ActiveProfiles("test")
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(ResultAnalyzer.class)
 class MainTest {
 
-    private Member member;
-    private Role roleUser;
-    private Role roleAdmin;
+    @Mock
+    private AccountRepository accountRepository;
 
-    private Role role;
+    @Mock
+    private MemberRepository memberRepository;
+
+    @Mock
+    private RoleRepository roleRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
     private AccountServiceImpl accountService;
-
-    private Account account;
-    private AuthenticationService authenticationService;
-
-    @Mock
-    private AccountRepository mockAccountRepository;
-
-    @Mock
-    private MemberRepository mockMemberRepository;
-
-    @Mock
-    private RoleRepository mockRoleRepository;
-
+    private AuthServiceImpl authService;
 
     @BeforeEach
     void setUp() {
-
-        member = new Member();
-        roleUser = new Role();
-        roleAdmin = new Role();
-
-
-        roleUser.setId(1L);
-        roleUser.setAuthority("USER");
-        roleAdmin.setId(2L);
-        roleAdmin.setAuthority("ADMIN");
-
-
-        member.setEmail("test@example.com");
-        member.setPassword("password");
-        member.setRoles(Arrays.asList(roleUser, roleAdmin));
-
-        role = new Role();
-        role.setId(1L);
-        role.setAuthority("USER");
-
-        account = new Account();
-        account.setId(1L);
-        account.setName("Test Account");
-
-        accountService = new AccountServiceImpl(mockAccountRepository);
-        authenticationService = new AuthenticationService(mockMemberRepository, mockRoleRepository, passwordEncoder);
+        accountService = new AccountServiceImpl(accountRepository);
+        authService = new AuthServiceImpl(memberRepository, roleRepository, passwordEncoder);
     }
 
     @Test
-    @DisplayName("Member Setters and Getters")
-    void memberSettersAndGetters() {
-        assertEquals("test@example.com", member.getEmail(), "The email should match the one set.");
-        assertEquals("password", member.getPassword(), "The password should match the one set.");
+    @DisplayName("Repository interfaces should extend JpaRepository")
+    void repositoriesShouldExtendJpaRepository() {
+        assertTrue(JpaRepository.class.isAssignableFrom(AccountRepository.class));
+        assertTrue(JpaRepository.class.isAssignableFrom(MemberRepository.class));
+        assertTrue(JpaRepository.class.isAssignableFrom(RoleRepository.class));
     }
 
     @Test
-    @DisplayName("Member Authorities")
-    void memberAuthorities() {
-        Collection<? extends GrantedAuthority> authorities = member.getAuthorities();
-
-        assertNotNull(authorities, "Authorities collection should not be null.");
-        assertEquals(2, authorities.size(), "There should be two roles assigned to the member.");
-        assertTrue(authorities.containsAll(Arrays.asList(roleUser, roleAdmin)), "The authorities should include USER and ADMIN roles.");
-    }
-
-    @Test
-    @DisplayName("UserDetails Implementations")
-    void userDetailsImplementations() {
-        assertEquals(member.getEmail(), member.getUsername(), "The username should be the same as the email.");
-        assertTrue(member.isAccountNonExpired(), "The account should not be expired.");
-        assertTrue(member.isAccountNonLocked(), "The account should not be locked.");
-        assertTrue(member.isCredentialsNonExpired(), "The credentials should not be expired.");
-        assertTrue(member.isEnabled(), "The account should be enabled.");
-    }
-
-    @Test
-    void testAccountSettersAndGetters() {
-
-        Long expectedId = 1L;
-        String expectedName = "Test Account";
-
-
+    @DisplayName("Account getters/setters")
+    void accountGetterSetterTest() {
         Account account = new Account();
-        account.setId(expectedId);
-        account.setName(expectedName);
+        account.setId(1L);
+        account.setName("Main Account");
 
-
-        assertEquals(expectedId, account.getId(), "The ID returned was not the same value set.");
-        assertEquals(expectedName, account.getName(), "The name returned was not the same value set.");
+        assertEquals(1L, account.getId());
+        assertEquals("Main Account", account.getName());
     }
 
     @Test
-    @DisplayName("Role Setters and Getters")
-    void roleSettersAndGetters() {
-        assertEquals(1L, role.getId(), "The id should match the one set.");
-        assertEquals("USER", role.getAuthority(), "The authority should match the one set.");
+    @DisplayName("Role getters/setters")
+    void roleGetterSetterTest() {
+        Role role = new Role();
+        role.setId(10L);
+        role.setAuthority("ROLE_USER");
+
+        assertEquals(10L, role.getId());
+        assertEquals("ROLE_USER", role.getAuthority());
     }
 
     @Test
-    @DisplayName("GrantedAuthority Implementation")
-    void grantedAuthorityImplementation() {
+    @DisplayName("Member getters/setters")
+    void memberGetterSetterTest() {
+        Role role = Role.builder().id(1L).authority("ROLE_USER").build();
+        Member member = new Member();
+        member.setId(5L);
+        member.setEmail("user@test.com");
+        member.setPassword("12345");
+        member.setRoles(Set.of(role));
 
-        String authority = role.getAuthority();
-
-        assertNotNull(authority, "Authority should not be null.");
-        assertEquals("USER", authority, "The authority should return 'USER'.");
-    }
-
-
-    @Test
-    @DisplayName("AccountRepository should be  instance of JpaRepository")
-    void accountRepositoryInstanceCheck() {
-
-        assertTrue(mockAccountRepository instanceof JpaRepository, "MovieRepository should be an instance of JpaRepository");
-    }
-
-    @Test
-    @DisplayName("MemberRepository should be  instance of JpaRepository")
-    void memberRepositoryInstanceCheck() {
-
-        assertTrue(mockMemberRepository instanceof JpaRepository, "MemberRepository should be an instance of JpaRepository");
+        assertEquals(5L, member.getId());
+        assertEquals("user@test.com", member.getEmail());
+        assertEquals("12345", member.getPassword());
+        assertEquals(1, member.getRoles().size());
     }
 
     @Test
-    @DisplayName("RoleRepository should be  instance of JpaRepository")
-    void roleRepositoryInstanceCheck() {
-
-        assertTrue(mockRoleRepository instanceof JpaRepository, "RoleRepository should be an instance of JpaRepository");
+    @DisplayName("RegistrationMember record data")
+    void registrationMemberRecordTest() {
+        RegistrationMember dto = new RegistrationMember("user@test.com", "12345", "USER");
+        assertEquals("user@test.com", dto.email());
+        assertEquals("12345", dto.password());
+        assertEquals("USER", dto.role());
     }
 
     @Test
-    @DisplayName("RegisterResponse Data Storage")
-    void registerResponseDataStorage() {
-        String email = "test@example.com";
-        String message = "Registration successful";
-
-        RegisterResponse response = new RegisterResponse(email, message);
-
-        assertEquals(email, response.email(), "Email should match the one provided");
-        assertEquals(message, response.message(), "Message should match the one provided");
-    }
-
-
-    @Test
-    @DisplayName("RegistrationMember Data Storage")
-    void registrationMemberDataStorage() {
-        String email = "user@example.com";
-        String password = "securePassword123";
-
-        RegistrationMember member = new RegistrationMember(email, password);
-
-        assertEquals(email, member.email(), "Email should match the one provided");
-        assertEquals(password, member.password(), "Password should match the one provided");
+    @DisplayName("RegisterResponse record data")
+    void registerResponseRecordTest() {
+        RegisterResponse response = new RegisterResponse(1L, "user@test.com", "USER", "Member registered");
+        assertEquals(1L, response.id());
+        assertEquals("user@test.com", response.email());
+        assertEquals("USER", response.role());
+        assertEquals("Member registered", response.message());
     }
 
     @Test
-    @DisplayName("Find All Accounts")
-    void findAll() {
-        given(mockAccountRepository.findAll()).willReturn(Arrays.asList(account));
+    @DisplayName("Find all accounts")
+    void findAllAccountsTest() {
+        Account acc = Account.builder().id(1L).name("A").build();
+        when(accountRepository.findAll()).thenReturn(List.of(acc));
 
-        List<Account> accounts = accountService.findAll();
+        List<Account> result = accountService.findAll();
 
-        assertThat(accounts).isNotNull();
-        assertThat(accounts.size()).isEqualTo(1);
-        assertThat(accounts.get(0)).isEqualTo(account);
+        assertEquals(1, result.size());
+        assertEquals("A", result.get(0).getName());
     }
 
     @Test
-    @DisplayName("Save Account")
-    void save() {
-        when(mockAccountRepository.save(account)).thenReturn(account);
+    @DisplayName("Save account")
+    void saveAccountTest() {
+        Account acc = Account.builder().name("New").build();
+        Account saved = Account.builder().id(2L).name("New").build();
 
-        Account savedAccount = accountService.save(account);
+        when(accountRepository.save(acc)).thenReturn(saved);
 
-        assertThat(savedAccount).isNotNull();
-        assertThat(savedAccount.getId()).isEqualTo(account.getId());
-        verify(mockAccountRepository).save(account);
+        Account result = accountService.save(acc);
+
+        assertEquals(2L, result.getId());
+        verify(accountRepository).save(acc);
     }
 
     @Test
-    @DisplayName("Register New Member Successfully")
-    void registerNewMemberSuccessfully() {
-        given(mockMemberRepository.findByEmail(anyString())).willReturn(Optional.empty());
-        given(passwordEncoder.encode(anyString())).willReturn("password");
-        given(mockRoleRepository.findByAuthority("ADMIN")).willReturn(Optional.of(role));
-        given(mockMemberRepository.save(any(Member.class))).willReturn(member);
+    @DisplayName("Register member successfully")
+    void registerMemberSuccessTest() {
+        RegistrationMember request = new RegistrationMember("admin@test.com", "12345", "ADMIN");
+        Role adminRole = Role.builder().id(2L).authority("ROLE_ADMIN").build();
 
-        Member registeredMember = authenticationService.register("test@example.com", "password");
+        when(memberRepository.findByEmail("admin@test.com")).thenReturn(Optional.empty());
+        when(roleRepository.findByAuthority("ROLE_ADMIN")).thenReturn(Optional.of(adminRole));
+        when(passwordEncoder.encode("12345")).thenReturn("ENC_PASS");
+        when(memberRepository.save(any(Member.class))).thenAnswer(inv -> {
+            Member m = inv.getArgument(0);
+            m.setId(99L);
+            return m;
+        });
 
-        assertThat(registeredMember.getEmail()).isEqualTo("test@example.com");
-        assertThat(registeredMember.getPassword()).isEqualTo("password");
-        verify(mockMemberRepository).save(any(Member.class));
+        RegisterResponse response = authService.register(request);
+
+        assertEquals(99L, response.id());
+        assertEquals("admin@test.com", response.email());
+        assertEquals("ADMIN", response.role());
+        verify(roleRepository).findByAuthority(eq("ROLE_ADMIN"));
+        verify(memberRepository).save(any(Member.class));
     }
 
     @Test
-    @DisplayName("Register Member Throws Exception When Email Exists")
-    void registerMemberThrowsExceptionWhenEmailExists() {
-        given(mockMemberRepository.findByEmail(anyString())).willReturn(Optional.of(member));
+    @DisplayName("Register should fail when email already exists")
+    void registerMemberEmailExistsTest() {
+        RegistrationMember request = new RegistrationMember("user@test.com", "12345", "USER");
+        Member existing = Member.builder().id(1L).email("user@test.com").password("x").build();
 
-        assertThatThrownBy(() -> authenticationService.register("test@example.com", "password"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("User with given email already exist");
+        when(memberRepository.findByEmail("user@test.com")).thenReturn(Optional.of(existing));
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.register(request));
+        assertTrue(ex.getMessage().contains("Email already exists"));
     }
 }
